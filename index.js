@@ -16,8 +16,8 @@ const userOptions = () => {
           "View All Departments",  
           "View All Roles",
           "View All Employees",
-          "Add Department",
-          "Add Role",
+          "Add New Department",
+          "Add New Role",
           "Add Employee",
           "View Department Budget",
           "Update Employees",
@@ -25,7 +25,7 @@ const userOptions = () => {
         ],
         }).then((answer) => {
             switch (answer.options) {
-            case "Add Department":
+            case "Add New Department":
                 addDepartment();
                 break;
 
@@ -43,8 +43,8 @@ const userOptions = () => {
                 });
                 break;
 
-            case "Add Role":
-                promptRoles();
+            case "Add New Role":
+                addRole();
                 break;
 
             case "View All Roles":
@@ -76,28 +76,6 @@ const userOptions = () => {
     });
 };
 
-// 1st call for ADD DEPARTMENT FUNCTION
-const addDepartment = () => {
-
-    return inquirer.prompt(
-        {
-            type: "input",
-            name: "nameForDepartment",
-            message: "Please enter the name of the departmen you want to add"
-        }
-    ).then((addDeptAnswer) => {
-
-        const sql = `INSERT INTO departments (name) VALUES (?)`;
-        const params = [answersDept.departmentName];
-
-        db.query(sql, params, (err) => {
-
-            console.log("Added new Department to DB!")
-            return userOptions();
-        })
-
-    })
-};
 
 //VIEWALLDEPARTMENTS FUNCTION DECLARATION
 const viewAllDepartments = () => {
@@ -145,7 +123,88 @@ const viewAllEmployees = () => {
         return req;
     })
     return response;
-  };
+};
+
+// ADD DEPARTMENT FUNCTION DECLARATION
+const addDepartment = () => {
+
+    return inquirer.prompt(
+        {
+            type: "input",
+            name: "nameForDepartment",
+            message: "Please enter the name of the department you want to add"
+        }
+    ).then((addDeptAnswer) => {
+
+        const sql = `INSERT INTO departments (name) VALUES (?)`;
+        const params = [addDeptAnswer.nameForDepartment];
+
+        db.query(sql, params, (err) => {
+
+            console.log("Added new Department to DB!")
+            return userOptions();
+        })
+
+    })
+};
+
+// ADD NEW ROLE FUNCTION
+
+const addRole = () => {
+
+    // Variable to hold department names to be chosen after...
+    let chooseDepartment = [];
+    // - ViewAllDepartments function data is passed to foreach(), foreach() will read each
+    //   "department" and push it into chooseDepartment array
+    viewAllDepartments().then((data) => {
+        data.forEach((department) => {
+            chooseDepartment.push(department);
+        })
+    });
+    console.log(chooseDepartment)
+
+    return inquirer.prompt([
+        {
+            type: "input",
+            name: "nameForRole",
+            message: "Please enter the name of the ROLE you want to add",
+        },
+        {
+            type: "input",
+            name: "salaryForRole",
+            message: "Please SALARY for the ROLE you want to add",
+        },
+        {
+            type: "list",
+            name: "depID",
+            message: "Please choose the DEPARTMENT of the ROLE you want to add",
+            choices: chooseDepartment
+
+        },
+    ])
+    .then((newRoleAnswers) => {
+
+            // // Find ID of department chosen above
+            let departmentID = chooseDepartment.find((department) => {
+                if (department.name === newRoleAnswers.depID) {
+                    return department;
+                }
+            }).id; 
+
+
+            const sql = `INSERT INTO roles (title, salary, department_id) VALUES (?,?,?)`;
+            const params = [newRoleAnswers.nameForRole, newRoleAnswers.salaryForRole, departmentID   ];
+
+            db.query(sql, params, (err) => {
+
+                console.log("Added new Role to DB!")
+                return userOptions();
+            
+            })
+
+    })
+}
+
 
 
 //START APP!

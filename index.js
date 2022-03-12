@@ -9,7 +9,7 @@ const db = require('./db/connection');
 const userOptions = () => {
     return inquirer.prompt({
 
-        type: "list",
+        type: "rawlist",
         name: "options",
         message: "What would you like to do",
         choices: [
@@ -18,10 +18,8 @@ const userOptions = () => {
           "View All Employees",
           "Add New Department",
           "Add New Role",
-          "Add Employee",
+          "Add New Employee",
           "View Department Budget",
-          "Update Employees",
-          "Update Employees Manager",
         ],
         }).then((answer) => {
             switch (answer.options) {
@@ -54,8 +52,8 @@ const userOptions = () => {
                 });
                 break;
 
-            case "Add Employee":
-                promptEmployees();
+            case "Add New Employee":
+                addEmployee();
                 break;
 
             case "View All Employees":
@@ -65,13 +63,6 @@ const userOptions = () => {
                 }); 
                 break;
 
-            case "Update Employees":
-                updateEmployee();
-                break;
-
-            case "Update Employees Manager":
-                updateEmployeeManager();
-            break;
         }
     });
 };
@@ -79,6 +70,8 @@ const userOptions = () => {
 
 //VIEWALLDEPARTMENTS FUNCTION DECLARATION
 const viewAllDepartments = () => {
+
+    console.log("///////////ALL DEPARTMENTS TABLE////////")
 
     const sql = `SELECT * FROM departments`
     var response = db.promise().query(sql).then(([req, err]) => {
@@ -89,6 +82,8 @@ const viewAllDepartments = () => {
 
 // VIEW DEPARTMENTBUDGET FUNCTION DECLARATION
 const viewDepartmentBudget = () => {
+
+    console.log("///////////ALL DEPARTMENTS BUDGET TABLE////////")
 
     const sql = `SELECT departments.name AS 'Department', SUM(roles.salary) AS 'Total Budget'
         from employees
@@ -103,6 +98,9 @@ const viewDepartmentBudget = () => {
 
 // VIEWALLROLES FUNCTION DECLARATION
 const viewAllRoles = () => {
+
+    console.log("///////////ALL ROLES TABLE////////")
+
     const sql = `SELECT roles.id, roles.title, roles.salary, departments.name
         FROM roles
         LEFT JOIN departments ON roles.department_id = departments.id`;
@@ -114,6 +112,9 @@ const viewAllRoles = () => {
 
 // VIEWALLEMPLOYEES FUNCTION DECLARATION
 const viewAllEmployees = () => {
+
+    console.log("///////////ALL EMPLOYEES TABLE////////")
+
     const sql = `SELECT employees.id, employees.first_name, employees.last_name, roles.title, departments.name, roles.salary, 
         (SELECT CONCAT(x.first_name, " ", x.last_name) FROM employees x WHERE x.id = employees.manager_id) AS 'Manager'
         FROM employees
@@ -185,7 +186,7 @@ const addRole = () => {
     .then((newRoleAnswers) => {
 
             // // Find ID of department chosen above
-            let departmentID = chooseDepartment.find((department) => {
+            let departmentId = chooseDepartment.find((department) => {
                 if (department.name === newRoleAnswers.depID) {
                     return department;
                 }
@@ -193,17 +194,106 @@ const addRole = () => {
 
 
             const sql = `INSERT INTO roles (title, salary, department_id) VALUES (?,?,?)`;
-            const params = [newRoleAnswers.nameForRole, newRoleAnswers.salaryForRole, departmentID   ];
+            const params = [newRoleAnswers.nameForRole, newRoleAnswers.salaryForRole, departmentId   ];
 
             db.query(sql, params, (err) => {
 
-                console.log("Added new Role to DB!")
+                console.log("/////////// NEW ROLE HAS BEEN ADDED! ////////")
+
+                
                 return userOptions();
             
             })
 
     })
 }
+
+// ADD NEW EMPLOYEE!
+
+const addEmployee = () => {
+
+    // Empty var to me populated with an array of roles with their respective ids
+    var chooseRole = [];
+    // - The data "roles" of vieallroles is .then() passed into .forEach() method, foreach method will loop all roles 
+    //   and for each role it will create a new object with only the role and id in its callback function
+    //   and push it to rhe chooseRole empty array above      
+    viewAllRoles().then((data) => {
+        data.forEach((role) => {
+
+            let roleNameIdOnly = {
+
+                name: role.title,
+                id: role.id,
+            }
+            chooseRole.push(roleNameIdOnly);
+        })
+    });
+
+    var chooseManager = [];
+    viewAllEmployees().then((data) => {
+        data.forEach((employee) => {
+
+            let employeeIdOnly = {
+
+                name: employee.first_name + " " + employee.last_name,
+                id: employee.id,
+            }
+            chooseManager.push(employeeIdOnly);
+            
+        })
+    });
+
+
+    return inquirer.prompt([
+        {
+            type: "input",
+            name: "employeeFirstName",
+            message: "Enter the employee's FIRST NAME",
+        },
+        {
+            type: "input",
+            name: "employeeLastName",
+            message: "Enter the employee's LAST NAME",
+        },
+        {
+            type: "list",
+            name: "roleForEmployee",
+            message: "What is the employee's role? (Required)",
+            choices: chooseRole,
+        },
+        {
+            type: "list",
+            name: "managerForEmployee",
+            message: "Who is the employee's manager? (Required)",
+            choices: chooseManager,
+
+        }
+    ]).then((newEmployeeAnswers) => { 
+        
+        let roleId = chooseRole.find((role) => {
+            if (role.name === newEmployeeAnswers.roleForEmployee) {
+                return role;
+            }
+        }).id; 
+
+        let managerId = chooseManager.find((manager) => {
+            if (manager.name === newEmployeeAnswers.managerForEmployee) {
+                return manager;
+            }
+        }).id; 
+
+        const sql = `INSERT INTO employees (first_name, last_name, role_id, manager_id) 
+                    VALUES (?,?,?,?)`;
+        const param = [newEmployeeAnswers.employeeFirstName, newEmployeeAnswers.employeeLastName, roleId, managerId,];
+
+        db.query(sql, param, (err) => {
+
+            console.log("/////////// NEW EMPLOYEE HAS BEEN ADDED! ////////")
+            return userOptions();
+
+        })
+    })
+};
 
 
 

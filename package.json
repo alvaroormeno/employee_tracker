@@ -19,6 +19,9 @@
   "homepage": "https://github.com/alvaroormeno/employee_tracker#readme",
   "dependencies": {
     "express": "^4.17.3",
-    "mysql2": "^2.3.3"
+    "mysql2": "^2.3.3",
+    "console.table": "^0.10.0",
+    "inquirer": "^8.2.0"
+    
   }
 }

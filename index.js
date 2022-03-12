@@ -20,6 +20,7 @@ const userOptions = () => {
           "Add New Role",
           "Add New Employee",
           "View Department Budget",
+          "Update Employee",
         ],
         }).then((answer) => {
             switch (answer.options) {
@@ -61,6 +62,9 @@ const userOptions = () => {
                 console.table(data);
                 return userOptions();
                 }); 
+                break;
+            case "Update Employee":
+                updateEmployee();
                 break;
 
         }
@@ -162,7 +166,7 @@ const addRole = () => {
             chooseDepartment.push(department);
         })
     });
-    console.log(chooseDepartment)
+    
 
     return inquirer.prompt([
         {
@@ -227,7 +231,10 @@ const addEmployee = () => {
             }
             chooseRole.push(roleNameIdOnly);
         })
+        
     });
+
+    
 
     var chooseManager = [];
     viewAllEmployees().then((data) => {
@@ -245,6 +252,9 @@ const addEmployee = () => {
 
 
     return inquirer.prompt([
+
+
+        
         {
             type: "input",
             name: "employeeFirstName",
@@ -262,13 +272,15 @@ const addEmployee = () => {
             choices: chooseRole,
         },
         {
-            type: "list",
+            type: "rawlist",
             name: "managerForEmployee",
             message: "Who is the employee's manager? (Required)",
             choices: chooseManager,
 
-        }
-    ]).then((newEmployeeAnswers) => { 
+        },
+    ])
+    
+    .then((newEmployeeAnswers) => { 
         
         let roleId = chooseRole.find((role) => {
             if (role.name === newEmployeeAnswers.roleForEmployee) {
@@ -294,6 +306,93 @@ const addEmployee = () => {
         })
     })
 };
+
+
+
+// UPDATE EMPLOYEE FUNCTION DECLARATION
+const updateEmployee = () => {
+
+    var chooseEmployee = [];
+    viewAllEmployees().then((data) => {
+        data.forEach((employee) => {
+
+            let employeeIdOnly = {
+
+                name: employee.first_name + " " + employee.last_name,
+                id: employee.id,
+            }
+            chooseEmployee.push(employeeIdOnly);
+            
+        })
+        // console.log(chooseEmployee)
+    });
+
+    var chooseRole = [];
+    
+    viewAllRoles().then((data) => {
+        data.forEach((role) => {
+
+            let roleNameIdOnly = {
+
+                name: role.title,
+                id: role.id,
+            }
+            chooseRole.push(roleNameIdOnly);
+        })
+        // console.log(chooseRole)
+
+    }).then( () => {
+
+        return inquirer.prompt([
+    
+            {
+                type: "list",
+                name: "selectEmployee",
+                message: "Choose an EMPLOYEE to update",
+                choices: chooseEmployee,
+            },
+            {
+                type: "list",
+                name: "updateRole",
+                message: "Choose a ROLE to update EMPLOYEE'S old ROLE",
+                choices: chooseRole,
+
+            },
+
+        ])
+        
+        .then((updateEmployeeAnswers) => {
+
+            let employeeId = chooseEmployee.find((employee) => {
+                if (employee.name === updateEmployeeAnswers.selectEmployee) {
+                    return employee;
+                }
+            }).id;
+
+            let roleId = chooseRole.find((role) => {
+                if (role.name === updateEmployeeAnswers.updateRole) {
+                    return role;
+                }
+            }).id; 
+
+             
+
+            const sql = `UPDATE employees SET role_id = ? WHERE id = ?`;
+            
+            const params = [roleId, employeeId];
+
+            db.query(sql, params, (err) => {
+            
+                console.log("/////////// EMPLOYEE HAS BEEN UPDATED! ////////")
+                return userOptions();
+
+
+            });
+        });
+
+    })    
+}
+
 
 
 
